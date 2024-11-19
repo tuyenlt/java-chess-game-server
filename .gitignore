@@ -1,0 +1,44 @@
+# Maven build directory
+target/
+
+# Eclipse specific files
+.classpath
+.project
+.settings/
+
+# IntelliJ IDEA specific files
+*.iml
+.idea/
+out/
+
+# NetBeans specific files
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+nbactions.xml
+nb-configuration.xml
+
+# VS Code specific files
+.vscode/
+
+# Logs and other temporary files
+*.log
+*.tmp
+*.swp
+*.swo
+*~
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Generated files
+*.class
+*.war
+*.ear
+*.jar
+
+# Maven-specific
+.mvn/

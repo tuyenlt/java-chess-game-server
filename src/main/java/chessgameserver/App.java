@@ -10,8 +10,7 @@ public class App
     public static void main( String[] args ) throws IOException
     {
         DatabaseConnection.DatabaseConnectionInit();
-        MainServer server = new MainServer(0, 0);
+        MainServer server = new MainServer(5555, 6666);
         server.run();
-        System.out.println( "Hello World!" );
     }
 }

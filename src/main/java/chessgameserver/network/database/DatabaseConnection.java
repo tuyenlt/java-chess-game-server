@@ -63,6 +63,8 @@ public class DatabaseConnection {
                     user.draw = resultSet.getInt("draw");
                 }
             }
+            user.isSuccess = true;
+            user.message = "Login Success";
         } catch (Exception e) {
             e.printStackTrace();
             throw new Exception("Lỗi khi truy vấn cơ sở dữ liệu: " + e.getMessage());
@@ -78,15 +80,15 @@ public class DatabaseConnection {
         return user;
     }
 
-    public static synchronized MsgPacket registerNewUser(RegisterRequest registerRequest) throws Exception {
+    public static synchronized RegisterResponse registerNewUser(RegisterRequest registerRequest) throws Exception {
         boolean isUserNameExist = false;
-        MsgPacket response = new MsgPacket();
+        RegisterResponse response = new RegisterResponse();
 
         // Kiểm tra input hợp lệ
         if (registerRequest.userName == null || registerRequest.userName.isEmpty()) {
             throw new Exception("Tên đăng nhập không được để trống");
         }
-        if (registerRequest.passwd == null || registerRequest.passwd.isEmpty()) {
+        if (registerRequest.password == null || registerRequest.password.isEmpty()) {
             throw new Exception("Mật khẩu không được để trống");
         }
 
@@ -101,14 +103,14 @@ public class DatabaseConnection {
         }
 
         if (isUserNameExist) {
-            response.msg = "User name already exists";
+            response.message = "User name already exists";
         } else {
             String insertQuery = "INSERT INTO Users (username, password) VALUES (?, ?)";
             try (PreparedStatement insertStatement = connection.prepareStatement(insertQuery)) {
                 insertStatement.setString(1, registerRequest.userName);
-                insertStatement.setString(2, registerRequest.passwd);
+                insertStatement.setString(2, registerRequest.password);
                 insertStatement.executeUpdate();
-                response.msg = "Create new account success, go back to login";
+                response.message = "Create new account success, go back to login";
             }
         }
 

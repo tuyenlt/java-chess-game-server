@@ -13,6 +13,7 @@ public class PacketsRegester {
         kryo.register(LoginRequest.class);
         kryo.register(LoginResponse.class);
         kryo.register(RegisterRequest.class);
+        kryo.register(RegisterResponse.class);
         kryo.register(ProfileViewRequest.class);
         kryo.register(ProfileViewResponse.class);
         kryo.register(HistoryGameResponse.class);

@@ -2,6 +2,8 @@ package chessgameserver.network;
 import java.io.IOException;
 import java.util.*;
 
+import javax.security.auth.login.FailedLoginException;
+
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Listener;
 import com.esotericsoftware.kryonet.Server;
@@ -42,6 +44,7 @@ public class MainServer {
     public void run() throws IOException{
         server.start();
         server.bind(tcpPort, udpPort);
+        System.out.println(server.toString());
         server.addListener(new Listener(){
             public void received(Connection connection, Object object){
                 if(object instanceof LoginRequest){
@@ -78,18 +81,18 @@ public class MainServer {
             LoginResponse response = DatabaseConnection.loginAuthentication(request);
             connection.sendTCP(response);
         }catch(Exception error){ 
-            ErrorResponse errorResponse = new ErrorResponse();
-            errorResponse.error = error.getMessage();
-            connection.sendTCP(errorResponse);
+            LoginResponse response = new LoginResponse();
+            response.isSuccess = false;
+            response.message = error.getMessage();
+            connection.sendTCP(response);
         }    
     }
 
 
     private void handleRegister(Connection connection, Object object){
         try{
-
             RegisterRequest request = (RegisterRequest)object;
-            MsgPacket response = DatabaseConnection.registerNewUser(request);
+            RegisterResponse response = DatabaseConnection.registerNewUser(request);
             connection.sendTCP(response);
         }catch(Exception ex){
             System.out.println(ex.getMessage());

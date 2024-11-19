@@ -83,7 +83,7 @@ public class DatabaseConnection {
     public static synchronized RegisterResponse registerNewUser(RegisterRequest registerRequest) throws Exception {
         boolean isUserNameExist = false;
         RegisterResponse response = new RegisterResponse();
-
+        response.isSuccess = false;
         // Kiểm tra input hợp lệ
         if (registerRequest.userName == null || registerRequest.userName.isEmpty()) {
             throw new Exception("Tên đăng nhập không được để trống");
@@ -113,7 +113,7 @@ public class DatabaseConnection {
                 response.message = "Create new account success, go back to login";
             }
         }
-
+        response.isSuccess = true;
         return response;
     }
 

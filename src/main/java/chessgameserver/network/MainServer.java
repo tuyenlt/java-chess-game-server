@@ -95,6 +95,10 @@ public class MainServer {
             RegisterResponse response = DatabaseConnection.registerNewUser(request);
             connection.sendTCP(response);
         }catch(Exception ex){
+            RegisterResponse response = new RegisterResponse();
+            response.isSuccess = false;
+            response.message = ex.getMessage();
+            connection.sendTCP(response);
             System.out.println(ex.getMessage());
         }
     }

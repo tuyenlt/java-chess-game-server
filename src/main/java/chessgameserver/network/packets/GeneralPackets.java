@@ -43,7 +43,6 @@ public class GeneralPackets {
         
     }
 
-
     public static class RegisterResponse {
         public boolean isSuccess;
         public String message;
@@ -92,17 +91,17 @@ public class GeneralPackets {
         
     }
 
+    public static class UserRank{
+        public String userName;
+        public int elo;
+
+        public UserRank(String userName, int elo){
+            this.userName = userName;
+            this.elo = elo;
+        }
+    }
     public static class RankingListResponse {
         public ArrayList<UserRank> rankingList;
-        class UserRank{
-            public String userName;
-            public int elo;
-
-            public UserRank(String userName, int elo){
-                this.userName = userName;
-                this.elo = elo;
-            }
-        }
 
         public void addUserRankToList(String userName, int elo){
             rankingList.add(new UserRank(userName, elo));

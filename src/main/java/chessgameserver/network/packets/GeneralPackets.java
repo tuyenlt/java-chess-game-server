@@ -95,13 +95,17 @@ public class GeneralPackets {
         public String userName;
         public int elo;
 
+        public UserRank(){
+            
+        }
+
         public UserRank(String userName, int elo){
             this.userName = userName;
             this.elo = elo;
         }
     }
     public static class RankingListResponse {
-        public ArrayList<UserRank> rankingList;
+        public ArrayList<UserRank> rankingList = new ArrayList<>();
 
         public void addUserRankToList(String userName, int elo){
             rankingList.add(new UserRank(userName, elo));

@@ -80,7 +80,7 @@ public class DatabaseConnection {
         return user;
     }
 
-    public static synchronized RegisterResponse registerNewUser(RegisterRequest registerRequest) throws Exception {
+    public static RegisterResponse registerNewUser(RegisterRequest registerRequest) throws Exception {
         boolean isUserNameExist = false;
         RegisterResponse response = new RegisterResponse();
         response.isSuccess = false;
@@ -117,10 +117,10 @@ public class DatabaseConnection {
         return response;
     }
 
-    public static synchronized RankingListResponse getRankingList(RankingListRequest rankingListRequest) throws Exception {
+    public static RankingListResponse getRankingList(RankingListRequest rankingListRequest) throws Exception {
         RankingListResponse rankingListResponse = new RankingListResponse();
         String query = "SELECT username, elo FROM Rank ORDER BY elo DESC";
-
+        System.out.println("pass");
         try (PreparedStatement statement = connection.prepareStatement(query);
              ResultSet resultSet = statement.executeQuery()) {
 

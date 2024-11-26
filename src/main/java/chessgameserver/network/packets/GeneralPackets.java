@@ -91,6 +91,12 @@ public class GeneralPackets {
         
     }
 
+    public static class ImageUpload {
+        public String fileName;
+        public byte[] imageData;
+    }
+    
+
     public static class UserRank{
         public String userName;
         public int elo;

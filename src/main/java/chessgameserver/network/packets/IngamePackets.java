@@ -1,18 +1,25 @@
 package chessgameserver.network.packets;
 
+
 public class IngamePackets {
 
     public static class InitPacket {
         public int id;
+        public InitPacket(){}
+        public InitPacket(int id){
+            this.id = id;
+        }
     }
 
     public static class OpponentInfo{
         public String name;
         public int elo;
+        public String side;
         public OpponentInfo(){}
-        public OpponentInfo(String name, int elo) {
+        public OpponentInfo(String name, int elo, String side) {
             this.name = name;
             this.elo = elo;
+            this.side = side;
         }
     }
 
@@ -24,22 +31,13 @@ public class IngamePackets {
     }
 
     public static class MovePacket{
-        public int stX;
-        public int stY;
-        public int enX;
-        public int enY;
-
-        public MovePacket(){
-            
-        }
-
-        public MovePacket(int stX, int stY, int enX, int enY) {
-            this.stX = stX;
-            this.stY = stY;
-            this.enX = enX;
-            this.enY = enY;
+        public String move;
+        public MovePacket(){}
+        public MovePacket(String move){
+            this.move = move;
         }
     }
+
 
     public static class GameEndResponse{
         public double state;

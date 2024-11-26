@@ -2,6 +2,9 @@ package chessgameserver.logic;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 
 
 class Box {
@@ -19,7 +22,7 @@ class Box {
         this.piece = piece;
     }
 
-    public Piece getPiece() {
+    public Piece getPiece() { 
         return piece;
     }
 }
@@ -28,13 +31,16 @@ public class Board {
     private Box[][] board;
     
     // Thêm danh sách lịch sử di chuyển của 2 bên để tiện sử dụng sau này
-    private List<Move> white_moves = new ArrayList<>();
-    private List<Move> black_moves = new ArrayList<>();
-    private List<Move> allMoves = new ArrayList<>();
+    private List<String> whiteMoves = new ArrayList<>();
+    private List<String> blackMoves =new ArrayList<>();
+    private List<String> allMoves = new ArrayList<>();
+
+    // Danh sách thế cờ(theo dạng String) sau mỗi nước đi
+    private LinkedHashSet<String> boardPositions = new LinkedHashSet<>();
     
-    // Danh sách quân cờ 2 bên
-    // public List<Piece> whitePieces = new ArrayList<>();
-    // public List<Piece> blackPieces = new ArrayList<>();
+    //Danh sách số lượng quân cờ 2 bên
+    HashMap<Character,Integer> whitePieces;
+    HashMap<Character,Integer> blackPieces;
     
     // Vị trí quân vua của 2 bên
     private int wK_row, wK_col;
@@ -42,10 +48,12 @@ public class Board {
 
     // Đánh dấu lượt của người chơi hiện tại
     private String currentTurn;
+    private boolean isBoardReverse = false;
     
     public Board() {
         board = createBoard();
-        // createPieceList();
+        whitePieces = createPieceList();
+        blackPieces = createPieceList();
         wK_row = 7;
         wK_col = 4;
         bK_row = 0;
@@ -91,16 +99,36 @@ public class Board {
 
         return initialBoard;
     }
+
+    public void setReverse(Boolean isBoardReverse){
+        this.isBoardReverse = isBoardReverse;
+    }
+
+    public String[][] getBoardState(){
+        String[][] broadState = new String[8][8];
+        for(int i=0; i<8; i++){
+            for(int j=0; j<8; j++){
+                if(board[i][j].getPiece() != null){
+                    broadState[i][j] = board[i][j].getPiece().getName();
+                }else{
+                    broadState[i][j] = " ";
+                }
+            }
+        }
+        return broadState;
+    }
     
     // Tạo danh sách các quân cờ 2 bên nếu cần
-    // void createPieceList(){
-    //     for(int i = 0; i < 8; i++){
-    //         blackPieces.add(board[0][i].getPiece());
-    //         blackPieces.add(board[1][i].getPiece());
-    //         whitePieces.add(board[6][i].getPiece());
-    //         whitePieces.add(board[7][i].getPiece());
-    //     }
-    // }
+    HashMap<Character,Integer> createPieceList(){
+        HashMap<Character,Integer> pieces = new HashMap<>();
+        pieces.put('P', 8);
+        pieces.put('R', 2);
+        pieces.put('N', 2);
+        pieces.put('B', 2);
+        pieces.put('Q', 1);
+        pieces.put('K', 1);
+        return pieces; 
+    }
 
 
     // Kiểm tra box ở pos có trống không
@@ -115,7 +143,13 @@ public class Board {
 
     // Thiết lập quân cờ
     public void setPiece(int row, int col, Piece piece){
+        if (!isEmpty(row, col)){
+            popPiece(getPiece(row, col).getName());
+        }
         board[row][col].setPiece(piece);
+        if (piece != null){
+            addPiece(piece.getName());
+        }
     }
 
     // Lấy thông tin vị trí của King
@@ -161,7 +195,9 @@ public class Board {
 
     // Di chuyển quân cờ theo dạng chuỗi
     public void movePiece(String stringMove){
+        // System.out.println(stringMove);
         movePiece(new Move(stringMove));
+        allMoves.add(stringMove);                               
     }
 
     public void movePiece(Move move){
@@ -171,7 +207,13 @@ public class Board {
     public void movePiece(Move move, boolean isFakeMove){
         //Thực hiện di chuyển
         Piece piece = getPiece(move.getStartRow(), move.getStartCol());
+        if(move.isCastling(this)){
+            Castling(move);
+        }
         setPiece(move.getEndRow(), move.getEndCol(), piece);
+        if(move.isPromotion(this)){
+            Promotion(move.getEndRow(),move.getEndCol(),piece.getpieceColor(), move.getPromotedPieceType());
+        }
         setPiece(move.getStartRow(), move.getStartCol(), null);
         
         //Đánh dấu trạng thái di chuyển của King và Rook
@@ -183,28 +225,33 @@ public class Board {
             if(!isFakeMove)((Rook)piece).setHasMoved(true);
         }
         
-        //Phép xử lý các nước đi đặc biệt
-        if(move.isCastling(this)){
-            Castling(move);
-        }
-        if(move.isPromotion(this)){
-            Promotion(move.getEndRow(),move.getEndCol(),piece.getpieceColor());
-        }
-
         //Thêm phép di chuyển vào danh sách
+        
+        // Tốt qua đường
+        if(move.isEnPassant()){
+            System.out.println("pass");
+            setPiece(move.getStartRow(), move.getEndCol(),null);
+        }
+        
         if(isFakeMove) return;
+
         if(currentTurn.equals("w")){
-            white_moves.add(move);
+            whiteMoves.add(move.toString());
             currentTurn = "b";
         }else{
-            black_moves.add(move);
+            blackMoves.add(move.toString());
             currentTurn = "w";
         }
-        allMoves.add(move);
+        if(!move.isTurnBot())allMoves.add(move.toString());
+
+        // Thêm thế cờ mới
+        boardPositions.add(toString());
+        System.out.println(this);
     }
          
     // Xử lý riêng phần nhập thành
     private void Castling (Move move){
+        System.out.println("casle");
         if(move.getEndCol() == 2){
             movePiece(new Move(move.getStartRow(),0,move.getEndRow(),3),true);
         }else{
@@ -214,36 +261,117 @@ public class Board {
 
     // Xử lý riêng phần phong hậu
     // Phần này nếu muốn có thể nâng cấp lên thành chon 1 trong 4 quân xe, mã, tịnh, hậu.
-    private void Promotion (int row, int col, String pieceColor){
-        setPiece(row,col,new Queen(pieceColor));
+    private void Promotion (int row, int col, String pieceColor, String pieceType){
+        if(pieceType.equals("")){
+            return;
+        }
+        System.out.println("promotion call:" + pieceColor + " " + pieceType);
+        if (pieceType.equals("q")){
+            System.out.println("promotion to queen");
+            setPiece(row,col,new Queen(pieceColor));
+        }else if(pieceType.equals("r")){
+            setPiece(row, col, new Rook(pieceColor));
+        }else if(pieceType.equals("b")){
+            setPiece(row, col, new Bishop(pieceColor));
+        }else {
+            setPiece(row, col, new Knight(pieceColor));
+        }
     }
 
     // Kiểm tra xem quân cờ đã chọn có đang đi đi đúng lượt hay không?
     public boolean isCorrectTurn(int row, int col){
+        if(isBoardReverse){
+            row = 7 - row;
+            col = 7 - col;
+        }
         Piece piece = getPiece(row, col);
+        if(piece == null){
+            return false;
+        }
         return piece.getpieceColor().equals(currentTurn);
     }
 
     //Trả về nước đi cuối cùng dạng chuỗi (phục vụ cho chế độ 1 người chơi)
-    public String getLastMove(){
-        return white_moves.getLast().toString();
+    public String getLastMoveString(){
+        return whiteMoves.getLast().toString();
     }
 
-    // Kiểm tra trạng thái trò chơi ongoing , draw, win
-    public String gameState(){
-        for(int row = 0; row < 8; row++){
-            for(int col = 0; col < 8; col++){
+    public Move getLastMove(){
+        if(allMoves.isEmpty()){
+            return null;
+        }
+        return new Move(allMoves.getLast());
+    }
+
+    public List<String> getMoves(String side){
+        if(side.equals("b")){
+            return this.blackMoves;
+        }
+        if(side.equals("w")){
+            return this.whiteMoves;
+        }
+        return this.allMoves;
+    }
+
+    // Kiểm tra trạng thái bị chiếu bí của người chơi hiện tại
+    public boolean isCheckMate(){
+        if(!Utils.isCheck(this, currentTurn)) return false;
+        for(int row = 0; row < 8; row ++){
+            for(int col = 0 ;col <8; col++){
                 Piece piece = getPiece(row, col);
-                if(piece == null || piece.getpieceColor().equals(currentTurn)) continue;
-                if(!piece.getValidMoves(this, row, col).isEmpty()) return "ongoing";
+                if(piece == null || !piece.getpieceColor().equals(currentTurn)) continue;
+                if(!piece.getSafeMoves(this, row, col).isEmpty()) return false; 
             }
         }
-        if(Utils.isCheck(this, currentTurn)) return "win";
-        return "draw";
+        System.out.println(((currentTurn.equals("w")) ? "Black" : "White") +" Player win!");
+        return true;
+    } 
+
+    // Kiểm tra trạng thái hòa
+    public boolean isDraw(){
+        if (Utils.isStaleMate(this, currentTurn)) return true;
+        if (Utils.isInsufficientMaterial(whitePieces,blackPieces)) return true;
+        return false;
     }
 
+    // Trả về kết quả của ván đấu
+    public String gameState(){
+        if(isCheckMate()) return "win";
+        if(isDraw()) return "draw";
+        return "ongoing";
+    }
 
-    public List<Move> getAllMoves(){
-        return this.allMoves;
+    private void popPiece(String namePiece){
+        char pieceType = namePiece.charAt(1);
+        if(namePiece.charAt(0) == 'w'){
+            whitePieces.put(pieceType, whitePieces.get(pieceType)-1);
+        }else{
+            blackPieces.put(pieceType, whitePieces.get(pieceType)-1);
+        }
+    }
+
+    private void addPiece(String namePiece){
+        char pieceType = namePiece.charAt(1);
+        if(namePiece.charAt(0) == 'w'){
+            whitePieces.put(pieceType, whitePieces.get(pieceType)+1);
+        }else{
+            blackPieces.put(pieceType, whitePieces.get(pieceType)+1);
+        }
+    }
+
+    @Override
+    public String toString() {
+        String output = "------------------------" +'\n';
+        for(int row = 0; row <8; row++ ){
+            String line ="";
+            for(int col = 0 ; col<8; col++){
+                Piece piece = getPiece(row, col);
+                if (piece !=null) line += (getPiece(row, col).getName() +" ");
+                else line +=("-- ");
+            }
+            output += (line +'\n');
+        }
+        output += "------------------------";
+        return output;
     }
 }

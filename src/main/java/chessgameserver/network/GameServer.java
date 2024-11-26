@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.io.IOException;
+import java.util.concurrent.Executors;
+
 
 
 
@@ -26,9 +28,10 @@ public class GameServer{
     private int udpPort;
     private Board board = new Board();
 
-    private ScheduledExecutorService timerExecutor;
+    private ScheduledExecutorService timerExecutor = Executors.newScheduledThreadPool(1);
     private int whitePlayerTime = 10 * 60; 
     private int blackPlayerTime = 10 * 60; 
+    private int connectionCount = 0;
     
     public GameServer(int whitePlayerId, int blackPlayerId){
         server = new Server();
@@ -36,6 +39,7 @@ public class GameServer{
         try{
             whitePlayer = new PlayerConnection(whitePlayerId);
             blackPlayer = new PlayerConnection(blackPlayerId);
+            System.out.println("white id" + whitePlayerId + " blackid" + blackPlayerId);
         }catch(Exception e){
             System.out.println(e.getMessage());
         }
@@ -120,48 +124,53 @@ public class GameServer{
     }
 
     private void handlePlayerConnected(Connection connection,InitPacket initPacket){
+        System.out.println("Init Packet" + initPacket.id);
         if(initPacket.id == whitePlayer.getId()){
             whitePlayer.setConnection(connection);
+            connectionCount++;
         }
         if(initPacket.id == blackPlayer.getId()){
             blackPlayer.setConnection(connection);
+            connectionCount++;
         }
-        if(server.getConnections().length == 2){
-            whitePlayer.connection.sendTCP(new OpponentInfo(blackPlayer.getName(),blackPlayer.getElo()));
-            blackPlayer.connection.sendTCP(new OpponentInfo(whitePlayer.getName(),whitePlayer.getElo()));
+        if(connectionCount == 2){
+            whitePlayer.connection.sendTCP(new OpponentInfo(blackPlayer.getName(),blackPlayer.getElo(), "b"));
+            blackPlayer.connection.sendTCP(new OpponentInfo(whitePlayer.getName(),whitePlayer.getElo(), "w"));
             startPlayerTimers();
         }
     }
 
     private void handleMsgPacket(Connection connection, Object object){
         MsgPacket request = (MsgPacket)object;
-        System.out.println(request.msg);
-
-        MsgPacket response = new MsgPacket();
-        response.msg = "Welcome to our house bitch";
-        connection.sendTCP(response);
+        if(request.msg.equals("/surrender")){
+            if(connection.getID() == whitePlayer.connectionId){
+                handleGameEnd(1);
+            }else{
+                handleGameEnd(0);
+            }
+        }
     }
 
     private void handleMoveRequest(Connection connection, Object object){
         MovePacket request = (MovePacket)object;
-        Move newMove = new Move(request.stX, request.stY, request.enX, request.enY);
-        if(connection.getID() == blackPlayer.connectionId){
-            newMove.reverseBoard();
-        }
-        if(board.isValidMove(request.stX, request.stY, request.enX, request.enY)){
+        Move newMove = new Move(request.move);
+        System.out.println(newMove);
+        if(board.isValidMove(newMove.getStartRow(), newMove.getStartCol(), newMove.getEndRow(), newMove.getEndCol())){
             board.movePiece(newMove);
+            System.out.println(newMove);
         }else{
             //TODO  handle player cheating
         }
         
-        for(Connection conn : server.getConnections()){
-            conn.sendTCP(request);
+        if(connection.equals(whitePlayer.connection)){
+            blackPlayer.connection.sendTCP(new MovePacket(newMove.toString()));
+        }else{
+            whitePlayer.connection.sendTCP(new MovePacket(newMove.toString()));
         }
 
         if(board.gameState().equals("ongoing")){
             return;
         }
-
         
         if(board.gameState().equals("win")){
             if(board.getCurrentTurn().equals("w")){
@@ -179,7 +188,10 @@ public class GameServer{
 
 
     private void handleGameEnd(double whiteScore){
-        List<Move> allMoves = board.getAllMoves();
+        if (timerExecutor != null && !timerExecutor.isShutdown()) {
+            timerExecutor.shutdown();
+        }
+        List<String> allMoves = board.getMoves("a");
         int whiteEloChange = whitePlayer.gameEndWith(blackPlayer, whiteScore);
         int blackEloChange = blackPlayer.gameEndWith(whitePlayer, 1 - whiteScore);
         whitePlayer.connection.sendTCP(new GameEndResponse(

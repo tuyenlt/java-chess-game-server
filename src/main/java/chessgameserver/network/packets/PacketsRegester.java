@@ -27,6 +27,10 @@ public class PacketsRegester {
         kryo.register(ErrorResponse.class);
         kryo.register(InitPacket.class);
         kryo.register(UserRank.class);
+        kryo.register(OpponentInfo.class);
+        kryo.register(GameEndResponse.class);
+        kryo.register(ImageUpload.class);
         kryo.register(java.util.ArrayList.class);
+        kryo.register(byte[].class);
     }
 }

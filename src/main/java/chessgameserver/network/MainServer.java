@@ -1,5 +1,9 @@
 package chessgameserver.network;
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 import javax.security.auth.login.FailedLoginException;
@@ -35,7 +39,7 @@ public class MainServer {
         this.tcpPort = tcpPort;
         this.udpPort = udpPort;
 
-        server = new Server();
+        server = new Server(2 * 1024 * 1024, 2 * 1024 * 1024); // max 2MB
         PacketsRegester.register(server);
 
     }
@@ -71,14 +75,42 @@ public class MainServer {
                     handleWatingPlayer(connection, object);
                 }
 
+                if(object instanceof MsgPacket){
+                    handleMsgPacket(connection, object);
+                }
+
+                if(object instanceof ImageUpload){
+                    handleImageUpload(connection, object);
+                }
             }
         });
+    }
+
+    private void handleMsgPacket(Connection connection, Object object){
+        MsgPacket msgPacket = (MsgPacket)object;
+        if(msgPacket.msg.equals("/cancel-find-game")){
+            for(WaitingPlayer player : waitingPlayers){
+                if(player.connection.equals(connection)){
+                    waitingPlayers.remove(player);
+                    return;
+                }
+            }
+        }
     }
 
     private void handleLogin(Connection connection, Object object){
         LoginRequest request =  (LoginRequest)object;
         try{
             LoginResponse response = DatabaseConnection.loginAuthentication(request);
+            File file = new File("uploaded-images/" + response.userId + ".png");
+            if(!file.exists()){
+                file = new File("uploaded-images/avatar-holder.jpg");
+            }
+            ImageUpload imageUpload = new ImageUpload();
+            imageUpload.fileName = String.valueOf(response.userId);
+            imageUpload.imageData = Files.readAllBytes(file.toPath());
+
+            connection.sendTCP(imageUpload);
             connection.sendTCP(response);
         }catch(Exception error){ 
             LoginResponse response = new LoginResponse();
@@ -103,7 +135,23 @@ public class MainServer {
         }
     }
 
+    public void handleImageUpload(Connection connection, Object object){
+        ImageUpload upload = (ImageUpload)object;
+        try {
+            Path folderPath = Paths.get("uploaded-images");
+            Files.createDirectories(folderPath);
 
+            Path filePath = folderPath.resolve(upload.fileName);
+            Files.write(filePath, upload.imageData);
+
+
+            System.out.println("Image " + upload.fileName + " uploaded and saved at " + filePath);
+            connection.sendTCP("Image uploaded successfully");
+        } catch (IOException e) {
+            e.printStackTrace();
+            connection.sendTCP("Failed to save the image");
+        }
+    }
     
     private void handleGetRankingList(Connection connection, Object object){
         try{
@@ -139,6 +187,7 @@ public class MainServer {
     private void handleWatingPlayer(Connection connection, Object object){
         FindGameRequest request = (FindGameRequest)object;
         boolean isFoundNewGame = false;
+        System.out.println(request.userId+ " " + request.elo);
         for(WaitingPlayer waitingPlayer: waitingPlayers){
             if(Math.abs(waitingPlayer.elo - request.elo) <= 200){
                 //*! create new game server here
@@ -148,9 +197,11 @@ public class MainServer {
                 int[] newServerPort = gameServer.getServerPorts();
                 FindGameResponse response = new FindGameResponse();
                 response.tcpPort = newServerPort[0];
-                response.udpPort = newServerPort[1];
+                response.udpPort = newServerPort[1];    
                 gameServer.run();
+                response.side = "w";
                 waitingPlayer.connection.sendTCP(response);
+                response.side = "b";
                 connection.sendTCP(response);
                 waitingPlayers.remove(waitingPlayer);
                 isFoundNewGame = true;

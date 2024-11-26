@@ -49,7 +49,7 @@ public class PlayerConnection{
 
     public int gameEndWith(PlayerConnection other, double score){
         double expectedElo = 1.0 / (1 + Math.pow(10, (other.elo - this.elo) / 400.0));
-        int newElo = (int) Math.round(this.elo + 32 * (score - expectedElo));
+        int newElo = (int) Math.round(this.elo + 200 * (score - expectedElo));
         this.elo = newElo;
         if(score == 1){
             win++;
@@ -60,7 +60,7 @@ public class PlayerConnection{
         if(score == 0){
             lose++;
         }
-        return (int)expectedElo;
+        return (int)(200 * (score - expectedElo));
     }
 
     public void saveToDatabase(){

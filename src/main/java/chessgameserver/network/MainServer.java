@@ -17,6 +17,7 @@ import chessgameserver.network.database.DatabaseConnection;
 import chessgameserver.network.packets.PacketsRegester;
 import chessgameserver.network.packets.GeneralPackets.*;
 
+@SuppressWarnings("unused")
 public class MainServer {
     private Server server;
     private int tcpPort;

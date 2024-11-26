@@ -264,5 +264,25 @@ public class DatabaseConnection {
     
         return historyList;
     }
+    public static void saveGameHistory(int matchId, int whiteId, int blackId, String moves, String result) throws Exception {
+        // Câu lệnh SQL để chèn lịch sử đấu vào bảng HistoryGame
+        String query = "INSERT INTO HistoryGame (matchid, white_id, black_id, moves, result) VALUES (?, ?, ?, ?, ?)";
+        
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
+            // Gán giá trị cho các tham số trong câu lệnh SQL
+            statement.setInt(1, matchId);
+            statement.setInt(2, whiteId);
+            statement.setInt(3, blackId);
+            statement.setString(4, moves);
+            statement.setString(5, result);
+            
+            // Thực thi câu lệnh
+            statement.executeUpdate();
+            System.out.println("Game history saved successfully!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new Exception("Error saving game history: " + e.getMessage());
+        }
+    }
     
 }

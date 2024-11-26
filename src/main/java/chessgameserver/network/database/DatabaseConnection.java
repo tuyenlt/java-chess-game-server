@@ -4,10 +4,13 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
 
 import chessgameserver.network.packets.*;
 import chessgameserver.network.packets.GeneralPackets.*;
 
+@SuppressWarnings("unused")
 public class DatabaseConnection {
 
     // Phương thức kết nối cơ sở dữ liệu
@@ -140,18 +143,18 @@ public class DatabaseConnection {
 
     public static synchronized HistoryGameResponse getHistoryGame(HistoryGameRequest gameRequest) throws Exception {
         HistoryGameResponse response;
-        String query = "SELECT player_id, opponent_id, moves, result FROM HistoryGame WHERE matchid = ?";
+        String query = "SELECT white_id, black_id, moves, result FROM HistoryGame WHERE matchid = ?";
 
         try (PreparedStatement statement = connection.prepareStatement(query)) {
             statement.setLong(1, Long.parseLong(gameRequest.gameId));
             ResultSet resultSet = statement.executeQuery();
 
             if (resultSet.next()) {
-                int playerId = resultSet.getInt("player_id");
-                int opponentId = resultSet.getInt("opponent_id");
+                int whiteId = resultSet.getInt("white_id");
+                int blackId = resultSet.getInt("black_id");
                 String moves = resultSet.getString("moves");
                 String result = resultSet.getString("result");
-                response = new HistoryGameResponse(playerId, opponentId, moves, result);
+                response = new HistoryGameResponse(whiteId, blackId, moves, result);
 
             } else {
                 throw new Exception("Game not found with ID: " + gameRequest.gameId);
@@ -225,4 +228,41 @@ public class DatabaseConnection {
             statement.executeUpdate();
         }
     }
+    public static List<HistoryGameResponse> getUserHistoryGame(int id) throws Exception {
+        List<HistoryGameResponse> historyList = new ArrayList<>();
+        
+        // Truy vấn trận đấu có liên quan đến người chơi (white_id hoặc black_id)
+        String query = "SELECT matchid, white_id, black_id, moves, result FROM HistoryGame WHERE white_id = ? OR black_id = ?";
+    
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setInt(1, id);
+            statement.setInt(2, id);
+            ResultSet resultSet = statement.executeQuery();
+    
+           
+            while (resultSet.next()) {
+                int matchId = resultSet.getInt("matchid");
+                int whiteId = resultSet.getInt("white_id");
+                int blackId = resultSet.getInt("black_id");
+                String moves = resultSet.getString("moves");
+                String result = resultSet.getString("result");
+    
+                HistoryGameResponse gameResponse = new HistoryGameResponse(whiteId, blackId, moves, result);
+                //gameResponse.setMatchId(matchId);
+                historyList.add(gameResponse);
+            }
+            
+            // Kiểm tra nếu không có lịch sử nào được tìm thấy
+            if (historyList.isEmpty()) {
+                System.out.println("No history games found for user with ID: " + id);
+            }
+    
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new Exception("Error fetching user history games: " + e.getMessage());
+        }
+    
+        return historyList;
+    }
+    
 }

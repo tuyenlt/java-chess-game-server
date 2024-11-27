@@ -2,6 +2,7 @@ package chessgameserver.network;
 
 import com.esotericsoftware.kryonet.Server;
 
+import chessgameserver.network.database.DatabaseConnection;
 import chessgameserver.network.packets.*;
 import chessgameserver.network.packets.GeneralPackets.*;
 import chessgameserver.network.packets.IngamePackets.*;
@@ -205,9 +206,20 @@ public class GameServer{
             allMoves.size(),
             blackEloChange
         ));     
-        // TODO save game history
 
+        String result = "draw";
+        if(whiteScore == 1){
+            result = whitePlayer.getName() + " win";
+        }else if(whiteScore == 0){  
+            result = blackPlayer.getName() + " win";
+        }
 
+        try{
+            DatabaseConnection.saveGameHistory(whitePlayer.getId(), blackPlayer.getId(), result, String.join(" ", allMoves));  
+        }catch(Exception e){
+            System.out.println(e.getMessage());
+        }
+        
         whitePlayer.saveToDatabase();
         blackPlayer.saveToDatabase();
         server.stop();

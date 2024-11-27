@@ -18,6 +18,7 @@ import chessgameserver.network.database.DatabaseConnection;
 import chessgameserver.network.packets.PacketsRegester;
 import chessgameserver.network.packets.GeneralPackets.*;
 
+@SuppressWarnings("unused")
 public class MainServer {
     private Server server;
     private int tcpPort;
@@ -198,7 +199,7 @@ public class MainServer {
     private void handleHistoryGame(Connection connection, Object object){
         try {   
             HistoryGameRequest request = (HistoryGameRequest)object;
-            HistoryGameResponse response = DatabaseConnection.getHistoryGame(request);
+            HistoryGameResponse response = DatabaseConnection.getUserHistoryGame(request);
             connection.sendTCP(response);
         } catch (Exception ex) {
             // TODO: handle exception

@@ -4,10 +4,13 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
 
 import chessgameserver.network.packets.*;
 import chessgameserver.network.packets.GeneralPackets.*;
 
+@SuppressWarnings("unused")
 public class DatabaseConnection {
 
     // Phương thức kết nối cơ sở dữ liệu
@@ -155,32 +158,6 @@ public class DatabaseConnection {
         return rankingListResponse;
     }
 
-    public static synchronized HistoryGameResponse getHistoryGame(HistoryGameRequest request) throws Exception {
-        HistoryGameResponse response;
-        String query = "SELECT player_id, opponent_id, moves, result FROM HistoryGame WHERE matchid = ?";
-
-        try (PreparedStatement statement = connection.prepareStatement(query)) {
-            statement.setLong(1, Long.parseLong(gameRequest.gameId));
-            ResultSet resultSet = statement.executeQuery();
-
-            if (resultSet.next()) {
-                int playerId = resultSet.getInt("player_id");
-                int opponentId = resultSet.getInt("opponent_id");
-                String moves = resultSet.getString("moves");
-                String result = resultSet.getString("result");
-                response = new HistoryGameResponse(playerId, opponentId, moves, result);
-
-            } else {
-                throw new Exception("Game not found with ID: " + gameRequest.gameId);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new Exception("Error fetching game history: " + e.getMessage());
-        }
-
-        return response;
-    }
-
     public static synchronized ProfileViewResponse getProfile(ProfileViewRequest request) throws Exception {
         ProfileViewResponse response = new ProfileViewResponse();
         String query = "SELECT id, username, email, elo, win, lose, draw FROM Users WHERE id = ?";
@@ -242,4 +219,60 @@ public class DatabaseConnection {
             statement.executeUpdate();
         }
     }
+
+
+    public static HistoryGameResponse getUserHistoryGame(HistoryGameRequest request) throws Exception {
+        HistoryGameResponse response = new HistoryGameResponse();
+        
+        // Truy vấn trận đấu có liên quan đến người chơi (white_id hoặc black_id)
+        String query = "SELECT matchid, white_id, black_id, moves, result FROM HistoryGame WHERE white_id = ? OR black_id = ?";
+        String userName = getUserNameById(request.userId);
+        
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setInt(1, request.userId);
+            statement.setInt(2, request.userId);
+            ResultSet resultSet = statement.executeQuery();
+    
+           
+            while (resultSet.next()) {
+                int matchId = resultSet.getInt("matchid");
+                int whiteId = resultSet.getInt("white_id");
+                int blackId = resultSet.getInt("black_id");
+                String moves = resultSet.getString("moves");
+                String result = resultSet.getString("result");
+                
+                String opponentName = whiteId == request.userId ? getUserNameById(blackId) : getUserNameById(whiteId);
+                boolean onWhite = whiteId == request.userId;
+                response.addHistoryGameToList(userName, opponentName, moves, result, onWhite);                    
+            }
+    
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new Exception("Error fetching user history games: " + e.getMessage());
+        }
+    
+        return response;
+    }
+
+
+    public static void saveGameHistory(int whiteId, int blackId, String moves, String result) throws Exception {
+        // Câu lệnh SQL để chèn lịch sử đấu vào bảng HistoryGame
+        String query = "INSERT INTO HistoryGame (white_id, black_id, moves, result) VALUES (?, ?, ?, ?)";
+        
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
+            // Gán giá trị cho các tham số trong câu lệnh SQL
+            statement.setInt(1, whiteId);
+            statement.setInt(2, blackId);
+            statement.setString(3, moves);
+            statement.setString(4, result);
+            
+            // Thực thi câu lệnh
+            statement.executeUpdate();
+            System.out.println("Game history saved successfully!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new Exception("Error saving game history: " + e.getMessage());
+        }
+    }
+    
 }

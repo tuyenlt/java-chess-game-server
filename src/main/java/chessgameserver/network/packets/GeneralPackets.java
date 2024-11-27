@@ -54,12 +54,12 @@ public class GeneralPackets {
     }
     
     public static class HistoryGameRequest {
-        public String userId;
+        public int userId;
         public HistoryGameRequest(){
 
         }
 
-        public HistoryGameRequest(String userId) {
+        public HistoryGameRequest(int userId) {
             this.userId = userId;
         }
     }
@@ -69,22 +69,24 @@ public class GeneralPackets {
         public String opponentName;
         public String moves;
         public String result;
+        public boolean onWhite;
         public HistoryGame(){
 
         }
-        public HistoryGame(String playerName, String opponentName, String moves, String result){
+        public HistoryGame(String playerName, String opponentName, String moves, String result, boolean onWhite){
             this.playerName = playerName;
             this.opponentName = opponentName;
             this.moves = moves;
             this.result = result;
+            this.onWhite = onWhite;
         }
     }
 
 
     public static class HistoryGameResponse {
         public ArrayList<HistoryGame> historyGameList = new ArrayList<>();
-        public void addHistoryGameToList(String playerName, String opponentName, String moves, String result){
-            historyGameList.add(new HistoryGame(playerName, opponentName, moves, result));
+        public void addHistoryGameToList(String playerName, String opponentName, String moves, String result, boolean onWhite){
+            historyGameList.add(new HistoryGame(playerName, opponentName, moves, result, onWhite));
         }
     }
 

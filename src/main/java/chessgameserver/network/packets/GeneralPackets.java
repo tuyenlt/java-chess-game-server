@@ -1,5 +1,6 @@
 package chessgameserver.network.packets;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 public class GeneralPackets {
@@ -53,28 +54,37 @@ public class GeneralPackets {
     }
     
     public static class HistoryGameRequest {
-        public String gameId;
+        public String userId;
         public HistoryGameRequest(){
 
         }
 
-        public HistoryGameRequest(String gameId) {
-            this.gameId = gameId;
+        public HistoryGameRequest(String userId) {
+            this.userId = userId;
         }
     }
 
-    public static class HistoryGameResponse {
-        public int playerId;
-        public int opponentId;
+    public static class HistoryGame{
+        public String playerName;
+        public String opponentName;
         public String moves;
         public String result;
+        public HistoryGame(){
 
-        public HistoryGameResponse(){}
-        public HistoryGameResponse(int playerId, int opponentId, String moves, String result) {
-            this.playerId = playerId;
-            this.opponentId = opponentId;
+        }
+        public HistoryGame(String playerName, String opponentName, String moves, String result){
+            this.playerName = playerName;
+            this.opponentName = opponentName;
             this.moves = moves;
             this.result = result;
+        }
+    }
+
+
+    public static class HistoryGameResponse {
+        public ArrayList<HistoryGame> historyGameList = new ArrayList<>();
+        public void addHistoryGameToList(String playerName, String opponentName, String moves, String result){
+            historyGameList.add(new HistoryGame(playerName, opponentName, moves, result));
         }
     }
 
@@ -89,6 +99,13 @@ public class GeneralPackets {
             this.option = option;
         }
         
+    }
+
+    public static class ImageChunk {
+        public String fileName;
+        public int chunkIndex;
+        public int totalChunks;
+        public byte[] imageData;
     }
 
     public static class ImageUpload {
@@ -152,15 +169,16 @@ public class GeneralPackets {
 
     public static class FindGameRequest{
         public int userId;
+        public String name;
         public int elo;
         public FindGameRequest(){
 
         }
-        public FindGameRequest(int userId, int elo) {
+        public FindGameRequest(int userId, String name, int elo) {
             this.userId = userId;
+            this.name = name;
             this.elo = elo;
         }
-        
     }
 
     public static class FindGameResponse{

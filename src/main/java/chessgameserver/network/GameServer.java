@@ -112,12 +112,12 @@ public class GameServer{
             if (board.getCurrentTurn().equals("w")) {
                 whitePlayerTime--;
                 if (whitePlayerTime <= 0) {
-                    handleGameEnd(0); // Black wins
+                    handleGameEnd(0);
                 }
             } else {
                 blackPlayerTime--;
                 if (blackPlayerTime <= 0) {
-                    handleGameEnd(1); // White wins
+                    handleGameEnd(1);
                 }
             }
         }, 1, 1, TimeUnit.SECONDS);

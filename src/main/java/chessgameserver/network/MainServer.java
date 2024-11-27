@@ -1,5 +1,6 @@
 package chessgameserver.network;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,12 +26,14 @@ public class MainServer {
     
     class WaitingPlayer{
         public Connection connection;
-        public int elo;
         public int playerId;
+        public String name;
+        public int elo;
 
-        public WaitingPlayer(Connection connection,int playerId,int elo) {
+        public WaitingPlayer(Connection connection,int playerId, String name, int elo) {
             this.connection = connection;
             this.playerId = playerId;
+            this.name = name;
             this.elo = elo;
         }
     }
@@ -50,6 +53,7 @@ public class MainServer {
         server.bind(tcpPort, udpPort);
         System.out.println(server.toString());
         server.addListener(new Listener(){
+
             public void received(Connection connection, Object object){
                 if(object instanceof LoginRequest){
                     handleLogin(connection, object);
@@ -79,11 +83,9 @@ public class MainServer {
                     handleMsgPacket(connection, object);
                 }
 
-                if(object instanceof ImageUpload){
-                    handleImageUpload(connection, object);
-                }
             }
         });
+        server.addListener(new ImageChunkHandler());
     }
 
     private void handleMsgPacket(Connection connection, Object object){
@@ -98,27 +100,64 @@ public class MainServer {
         }
     }
 
-    private void handleLogin(Connection connection, Object object){
-        LoginRequest request =  (LoginRequest)object;
-        try{
-            LoginResponse response = DatabaseConnection.loginAuthentication(request);
-            File file = new File("uploaded-images/" + response.userId + ".png");
-            if(!file.exists()){
-                file = new File("uploaded-images/avatar-holder.jpg");
-            }
-            ImageUpload imageUpload = new ImageUpload();
-            imageUpload.fileName = String.valueOf(response.userId);
-            imageUpload.imageData = Files.readAllBytes(file.toPath());
 
-            connection.sendTCP(imageUpload);
-            connection.sendTCP(response);
-        }catch(Exception error){ 
-            LoginResponse response = new LoginResponse();
-            response.isSuccess = false;
-            response.message = error.getMessage();
-            connection.sendTCP(response);
-        }    
+    public void sendImage(Connection connection, File file, String name) {
+        final int CHUNK_SIZE = 8000;
+        try (FileInputStream fis = new FileInputStream(file)) {
+            byte[] buffer = new byte[CHUNK_SIZE];
+            int bytesRead;
+            int chunkIndex = 0;
+
+            while ((bytesRead = fis.read(buffer)) != -1) {
+                ImageChunk chunk = new ImageChunk();
+                chunk.fileName = name;
+                chunk.chunkIndex = chunkIndex++;
+                chunk.totalChunks = (int) Math.ceil((double) file.length() / CHUNK_SIZE);
+                chunk.imageData = bytesRead == CHUNK_SIZE ? buffer : java.util.Arrays.copyOf(buffer, bytesRead);
+
+                connection.sendTCP(chunk);
+                System.out.println("Sent chunk " + chunk.chunkIndex + "/" + chunk.totalChunks + " of file " + name);
+            }
+
+            System.out.println("Image " + name + " sent to server in chunks.");
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.err.println("Failed to read or send file: " + file.getAbsolutePath());
+        }
     }
+
+    public void sendAvatar(Connection connection, String name){
+        String fileName = name + ".jpg";
+        File file = new File("uploaded-images/" + fileName);
+        if (!file.exists()) {
+            file = new File("uploaded-images/avatar-holder.jpg");
+        }
+        sendImage(connection, file, fileName);
+    }
+
+    private void handleLogin(Connection connection, Object object) {
+        LoginRequest request = (LoginRequest) object;
+        new Thread(() -> {
+            try {
+                LoginResponse response = DatabaseConnection.loginAuthentication(request);
+                String fileName = response.userName + ".jpg";
+                File file = new File("uploaded-images/" + fileName);
+                if (!file.exists()) {
+                    file = new File("uploaded-images/avatar-holder.jpg");
+                }
+                synchronized (connection.getEndPoint()) {
+                    sendImage(connection, file, fileName);
+                    connection.sendTCP(response);
+                }
+            } catch (Exception error) {
+                LoginResponse response = new LoginResponse();
+                response.isSuccess = false;
+                response.message = error.getMessage();
+                connection.sendTCP(response);
+            }
+        }).start();
+    }
+    
 
 
     private void handleRegister(Connection connection, Object object){
@@ -132,24 +171,6 @@ public class MainServer {
             response.message = ex.getMessage();
             connection.sendTCP(response);
             System.out.println(ex.getMessage());
-        }
-    }
-
-    public void handleImageUpload(Connection connection, Object object){
-        ImageUpload upload = (ImageUpload)object;
-        try {
-            Path folderPath = Paths.get("uploaded-images");
-            Files.createDirectories(folderPath);
-
-            Path filePath = folderPath.resolve(upload.fileName);
-            Files.write(filePath, upload.imageData);
-
-
-            System.out.println("Image " + upload.fileName + " uploaded and saved at " + filePath);
-            connection.sendTCP("Image uploaded successfully");
-        } catch (IOException e) {
-            e.printStackTrace();
-            connection.sendTCP("Failed to save the image");
         }
     }
     
@@ -199,17 +220,22 @@ public class MainServer {
                 response.tcpPort = newServerPort[0];
                 response.udpPort = newServerPort[1];    
                 gameServer.run();
+
                 response.side = "w";
                 waitingPlayer.connection.sendTCP(response);
+                sendAvatar(waitingPlayer.connection, request.name);
+
                 response.side = "b";
                 connection.sendTCP(response);
+                sendAvatar(connection, waitingPlayer.name);
+
                 waitingPlayers.remove(waitingPlayer);
                 isFoundNewGame = true;
                 break;
             }
         }
         if(!isFoundNewGame){
-            waitingPlayers.add(new WaitingPlayer(connection, request.userId, request.elo));
+            waitingPlayers.add(new WaitingPlayer(connection, request.userId, request.name, request.elo));
         }
     }
 }

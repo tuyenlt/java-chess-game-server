@@ -118,6 +118,23 @@ public class DatabaseConnection {
         return response;
     }
 
+    public static String getUserNameById(int userId) throws Exception {
+        String query = "SELECT * FROM Users WHERE id = ?";
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setInt(1, userId);
+            ResultSet resultSet = statement.executeQuery();
+
+            if (resultSet.next()) {
+                return resultSet.getString("username");
+            } else {
+                return "User not found with ID: " + userId;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new Exception("Lỗi khi truy vấn cơ sở dữ liệu: " + e.getMessage());
+        }
+    }
+
     public static RankingListResponse getRankingList(RankingListRequest rankingListRequest) throws Exception {
         RankingListResponse rankingListResponse = new RankingListResponse();
         String query = "SELECT username, elo FROM Rank ORDER BY elo DESC";
@@ -138,7 +155,7 @@ public class DatabaseConnection {
         return rankingListResponse;
     }
 
-    public static synchronized HistoryGameResponse getHistoryGame(HistoryGameRequest gameRequest) throws Exception {
+    public static synchronized HistoryGameResponse getHistoryGame(HistoryGameRequest request) throws Exception {
         HistoryGameResponse response;
         String query = "SELECT player_id, opponent_id, moves, result FROM HistoryGame WHERE matchid = ?";
 

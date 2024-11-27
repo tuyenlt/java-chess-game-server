@@ -32,5 +32,6 @@ public class PacketsRegester {
         kryo.register(ImageUpload.class);
         kryo.register(java.util.ArrayList.class);
         kryo.register(byte[].class);
+        kryo.register(ImageChunk.class);
     }
 }

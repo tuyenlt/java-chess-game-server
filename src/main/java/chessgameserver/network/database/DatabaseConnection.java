@@ -113,7 +113,7 @@ public class DatabaseConnection {
                 insertStatement.setString(1, registerRequest.userName);
                 insertStatement.setString(2, registerRequest.password);
                 insertStatement.setInt(3, 500);
-                insertStatement.setString(4, "fdsfds@gmail.com");
+                insertStatement.setString(4, registerRequest.email);
                 insertStatement.executeUpdate();
                 response.message = "Create new account success, go back to login";
             }
@@ -256,7 +256,7 @@ public class DatabaseConnection {
     }
 
 
-    public static void saveGameHistory(int whiteId, int blackId, String moves, String result) throws Exception {
+    public static void saveGameHistory(int whiteId, int blackId, String result, String moves) throws Exception {
         // Câu lệnh SQL để chèn lịch sử đấu vào bảng HistoryGame
         String query = "INSERT INTO HistoryGame (white_id, black_id, moves, result) VALUES (?, ?, ?, ?)";
         

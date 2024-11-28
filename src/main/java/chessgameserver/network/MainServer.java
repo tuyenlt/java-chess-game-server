@@ -85,6 +85,15 @@ public class MainServer {
                 }
 
             }
+
+            public void disconnected(Connection connection){
+                for(WaitingPlayer player : waitingPlayers){
+                    if(player.connection.equals(connection)){
+                        waitingPlayers.remove(player);
+                        return;
+                    }
+                }
+            }
         });
         server.addListener(new ImageChunkHandler());
     }
@@ -225,10 +234,12 @@ public class MainServer {
                 response.side = "w";
                 waitingPlayer.connection.sendTCP(response);
                 sendAvatar(waitingPlayer.connection, request.name);
+                sendAvatar(waitingPlayer.connection, waitingPlayer.name);
 
                 response.side = "b";
                 connection.sendTCP(response);
                 sendAvatar(connection, waitingPlayer.name);
+                sendAvatar(connection, request.name);
 
                 waitingPlayers.remove(waitingPlayer);
                 isFoundNewGame = true;

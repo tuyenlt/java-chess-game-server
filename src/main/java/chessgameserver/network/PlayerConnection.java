@@ -46,21 +46,22 @@ public class PlayerConnection{
         return elo;
     }
 
+    public void setElo(int elo) {
+        this.elo = elo;
+    }
 
-    public int gameEndWith(PlayerConnection other, double score){
-        double expectedElo = 1.0 / (1 + Math.pow(10, (other.elo - this.elo) / 400.0));
-        int newElo = (int) Math.round(this.elo + 200 * (score - expectedElo));
-        this.elo = newElo;
-        if(score == 1){
+    public void updateEloAfterGame(int eloChange, double score) {    
+        elo += eloChange;
+        if(elo < 0){
+            elo = 0;
+        }
+        if (score == 1) {
             win++;
-        }
-        if(score == 0.5){
+        } else if (score == 0.5) {
             draw++;
-        }
-        if(score == 0){
+        } else if (score == 0) {
             lose++;
         }
-        return (int)(200 * (score - expectedElo));
     }
 
     public void saveToDatabase(){

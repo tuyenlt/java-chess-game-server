@@ -28,6 +28,7 @@ public class GameServer{
     private int tcpPort;
     private int udpPort;
     private Board board = new Board();
+    private boolean isEndGame = false;
 
     private ScheduledExecutorService timerExecutor = Executors.newScheduledThreadPool(1);
     private int whitePlayerTime = 10 * 60; 
@@ -44,13 +45,17 @@ public class GameServer{
         }catch(Exception e){
             System.out.println(e.getMessage());
         }
-        try{
-            int[] ports = getTwoFreePorts();
-            tcpPort = ports[0];
-            udpPort = ports[1];
-            server.bind(tcpPort, udpPort);
-        }catch(IOException ex){
-            System.err.println(ex);
+        boolean isFindNewPort = false;
+        while (!isFindNewPort) {   
+            try{
+                int[] ports = getTwoFreePorts();
+                tcpPort = ports[0];
+                udpPort = ports[1];
+                server.bind(tcpPort, udpPort);
+                isFindNewPort = true;
+            }catch(IOException ex){
+                System.err.println(ex);
+            }
         }
     }
 
@@ -62,6 +67,8 @@ public class GameServer{
             ) { 
             ports[0] = serverSocket1.getLocalPort(); 
             ports[1] = serverSocket2.getLocalPort(); 
+            serverSocket1.close();
+            serverSocket2.close();
         } 
         return ports; 
     }
@@ -145,9 +152,9 @@ public class GameServer{
         MsgPacket request = (MsgPacket)object;
         if(request.msg.equals("/surrender")){
             if(connection.getID() == whitePlayer.connectionId){
-                handleGameEnd(1);
-            }else{
                 handleGameEnd(0);
+            }else{
+                handleGameEnd(1);
             }
         }
     }
@@ -174,11 +181,12 @@ public class GameServer{
         }
         
         if(board.gameState().equals("win")){
-            if(board.getCurrentTurn().equals("w")){
+            if(board.getCurrentTurn().equals("b")){
                 handleGameEnd(1);
             }else{
                 handleGameEnd(0);
             }
+            return;
         }
 
         if(board.gameState().equals("draw")){
@@ -193,8 +201,12 @@ public class GameServer{
             timerExecutor.shutdown();
         }
         List<String> allMoves = board.getMoves("a");
-        int whiteEloChange = whitePlayer.gameEndWith(blackPlayer, whiteScore);
-        int blackEloChange = blackPlayer.gameEndWith(whitePlayer, 1 - whiteScore);
+        int eloChange = calculateEloChange(whitePlayer.getElo(), blackPlayer.getElo(), whiteScore);
+        int whiteEloChange = eloChange;
+        int blackEloChange = -eloChange;
+        whitePlayer.updateEloAfterGame(whiteEloChange, whiteScore);
+        blackPlayer.updateEloAfterGame(blackEloChange, 1 - whiteScore);
+
         whitePlayer.connection.sendTCP(new GameEndResponse(
             whiteScore,
             allMoves.size(),
@@ -209,11 +221,12 @@ public class GameServer{
 
         String result = "draw";
         if(whiteScore == 1){
-            result = whitePlayer.getName() + " win";
+            result = "win";
         }else if(whiteScore == 0){  
-            result = blackPlayer.getName() + " win";
+            result = "lose";
         }
-
+        System.out.println(allMoves.size());
+        System.out.println(String.join(" ", allMoves));
         try{
             DatabaseConnection.saveGameHistory(whitePlayer.getId(), blackPlayer.getId(), result, String.join(" ", allMoves));  
         }catch(Exception e){
@@ -222,14 +235,28 @@ public class GameServer{
         
         whitePlayer.saveToDatabase();
         blackPlayer.saveToDatabase();
+        isEndGame = true;
         server.stop();
     }
 
     private void handlePlayerDisconnect(Connection connection){
+        if(isEndGame){
+            return;
+        }
         if(connection.getID() == whitePlayer.connectionId){
             handleGameEnd(0);            
         }else{
             handleGameEnd(1);
         } 
+    }
+
+    public int calculateEloChange(int whiteElo, int blackElo, double whiteScore){
+        if (whiteScore != 0 && whiteScore != 0.5 && whiteScore != 1) {
+            throw new IllegalArgumentException("Score must be 0 (loss), 0.5 (draw), or 1 (win).");
+        }
+    
+        final int K_FACTOR = 150;
+        double expectedScore = 1.0 / (1 + Math.pow(10, (blackElo - whiteElo) / 400.0));
+        return (int) Math.round(K_FACTOR * (whiteScore - expectedScore));
     }
 }

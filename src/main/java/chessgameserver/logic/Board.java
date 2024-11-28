@@ -242,7 +242,7 @@ public class Board {
             blackMoves.add(move.toString());
             currentTurn = "w";
         }
-        if(!move.isTurnBot())allMoves.add(move.toString());
+        allMoves.add(move.toString());
 
         // Thêm thế cờ mới
         boardPositions.add(toString());

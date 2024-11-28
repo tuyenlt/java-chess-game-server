@@ -31,15 +31,17 @@ public class GeneralPackets {
 
     public static class RegisterRequest {
         public String userName;
+        public String email;
         public String password;
 
         public RegisterRequest(){
 
         }
 
-        public RegisterRequest(String userName, String password) {
+        public RegisterRequest(String userName,String email, String password) {
             this.userName = userName;
             this.password = password;
+            this.email = email;
         }
         
     }

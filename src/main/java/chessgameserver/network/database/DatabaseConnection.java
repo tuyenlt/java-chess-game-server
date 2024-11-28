@@ -108,11 +108,12 @@ public class DatabaseConnection {
         if (isUserNameExist) {
             response.message = "User name already exists";
         } else {
-            String insertQuery = "INSERT INTO Users (username, password, elo) VALUES (?, ?, ?)";
+            String insertQuery = "INSERT INTO Users (username, password, elo, email) VALUES (?, ?, ?, ?)";
             try (PreparedStatement insertStatement = connection.prepareStatement(insertQuery)) {
                 insertStatement.setString(1, registerRequest.userName);
                 insertStatement.setString(2, registerRequest.password);
                 insertStatement.setInt(3, 500);
+                insertStatement.setString(4, "fdsfds@gmail.com");
                 insertStatement.executeUpdate();
                 response.message = "Create new account success, go back to login";
             }

@@ -23,7 +23,7 @@ public class ImageChunkHandler extends Listener {
             File folder = new File(folderPath);
 
             if (!folder.exists()) {
-                folder.mkdirs();
+                folder.mkdirs(); 
             }
 
             fileMap.putIfAbsent(chunk.fileName, new ChunkedFile(chunk.totalChunks));

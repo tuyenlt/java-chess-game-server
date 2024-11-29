@@ -9,6 +9,7 @@ import java.util.List;
 
 import chessgameserver.network.packets.*;
 import chessgameserver.network.packets.GeneralPackets.*;
+import chessgameserver.ultis.Validator;
 
 @SuppressWarnings("unused")
 public class DatabaseConnection {
@@ -38,12 +39,15 @@ public class DatabaseConnection {
         boolean isPasswordCorrect = false;
         
         LoginResponse user = new LoginResponse();
-        // Kiểm tra input hợp lệ
-        if (loginRequest.userName == null || loginRequest.userName.isEmpty()) {
-            throw new Exception("Tên đăng nhập không được để trống");
+
+        String userNameValidate = Validator.userNameValidator(loginRequest.userName);
+        String passwordValidate = Validator.passwordValidator(loginRequest.passwd);
+
+        if(userNameValidate != "ok") {
+            throw new Exception(userNameValidate);
         }
-        if (loginRequest.passwd == null || loginRequest.passwd.isEmpty()) {
-            throw new Exception("Mật khẩu không được để trống");
+        if(passwordValidate != "ok") {
+            throw new Exception(passwordValidate);
         }
 
         String query = "SELECT * FROM Users WHERE username = ?";
@@ -87,12 +91,24 @@ public class DatabaseConnection {
         boolean isUserNameExist = false;
         RegisterResponse response = new RegisterResponse();
         response.isSuccess = false;
-        // Kiểm tra input hợp lệ
-        if (registerRequest.userName == null || registerRequest.userName.isEmpty()) {
-            throw new Exception("Tên đăng nhập không được để trống");
+
+        String userNameValidate = Validator.userNameValidator(registerRequest.userName);
+        String passwordValidate = Validator.passwordValidator(registerRequest.password);
+        String emailValidate = Validator.emailValidator(registerRequest.email);
+
+        if(userNameValidate != "ok") {
+            response.message = userNameValidate;
+            return response;
         }
-        if (registerRequest.password == null || registerRequest.password.isEmpty()) {
-            throw new Exception("Mật khẩu không được để trống");
+
+        if(emailValidate != "ok") {
+            response.message = emailValidate;
+            return response;
+        }
+        
+        if (passwordValidate != "ok") {
+            response.message = passwordValidate;
+            return response;
         }
 
         String query = "SELECT * FROM Users WHERE username = ?";

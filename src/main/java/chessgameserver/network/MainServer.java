@@ -18,7 +18,6 @@ import chessgameserver.network.database.DatabaseConnection;
 import chessgameserver.network.packets.PacketsRegester;
 import chessgameserver.network.packets.GeneralPackets.*;
 
-@SuppressWarnings("unused")
 public class MainServer {
     private Server server;
     private int tcpPort;
@@ -220,7 +219,7 @@ public class MainServer {
         boolean isFoundNewGame = false;
         System.out.println(request.userId+ " " + request.elo);
         for(WaitingPlayer waitingPlayer: waitingPlayers){
-            if(Math.abs(waitingPlayer.elo - request.elo) <= 200){
+            if(Math.abs(waitingPlayer.elo - request.elo) <= 400){
                 //*! create new game server here
                 //*!
                 //*!
